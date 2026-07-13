@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f5f5f2" />
+  <meta name="description" content="시험 범위와 생활 일정을 바탕으로 계획을 만들고, 미완료 분량을 자동 재배치하는 공부 플래너" />
+  <title>StudyFlow · 시험 공부 플래너</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#pageContent">본문으로 건너뛰기</a>
+
+  <header class="app-header">
+    <a class="brand" href="#/" aria-label="StudyFlow 홈">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span class="brand-copy">
+        <strong>StudyFlow</strong>
+        <small>시험 공부 플래너</small>
+      </span>
+    </a>
+
+    <div class="header-status" aria-live="polite">
+      <span class="save-dot" aria-hidden="true"></span>
+      <span id="saveStatus">저장됨</span>
+    </div>
+
+    <div class="header-actions">
+      <button id="themeToggle" class="icon-button" type="button" aria-label="화면 테마 변경" title="화면 테마 변경">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36A7 7 0 0 1 12 3Z"/></svg>
+      </button>
+      <button id="resetButton" class="text-button danger-text" type="button">전체 초기화</button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <aside id="setupSidebar" class="sidebar setup-sidebar" aria-label="계획 만들기 단계">
+      <div class="sidebar-heading">
+        <span class="sidebar-kicker">계획 만들기</span>
+        <strong id="setupProgressText">1 / 4</strong>
+      </div>
+      <nav class="step-nav">
+        <a href="#/setup/exam" data-route-link="setup/exam">
+          <span class="step-number">1</span>
+          <span><strong>시험 설정</strong><small>기간과 공부 가능 시간</small></span>
+        </a>
+        <a href="#/setup/subjects" data-route-link="setup/subjects">
+          <span class="step-number">2</span>
+          <span><strong>과목 분석</strong><small>성적, 범위, 약점</small></span>
+        </a>
+        <a href="#/setup/schedule" data-route-link="setup/schedule">
+          <span class="step-number">3</span>
+          <span><strong>생활 일정</strong><small>학원과 고정 일정</small></span>
+        </a>
+        <a href="#/setup/review" data-route-link="setup/review">
+          <span class="step-number">4</span>
+          <span><strong>최종 확인</strong><small>분석 결과와 계획 생성</small></span>
+        </a>
+      </nav>
+      <div class="sidebar-note">
+        입력한 내용은 이 기기에 자동 저장됩니다.
+      </div>
+    </aside>
+
+    <aside id="dashboardSidebar" class="sidebar dashboard-sidebar" aria-label="대시보드 메뉴" hidden>
+      <div class="plan-summary-compact">
+        <span>현재 계획</span>
+        <strong id="sidebarPlanName">시험 계획</strong>
+        <small id="sidebarPlanPeriod"></small>
+      </div>
+      <nav class="dashboard-nav">
+        <a href="#/dashboard/today" data-route-link="dashboard/today">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 2v3M16 2v3M3 9h18M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z"/></svg>
+          <span>오늘</span><em id="todayCountBadge">0</em>
+        </a>
+        <a href="#/dashboard/week" data-route-link="dashboard/week">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 2v6M16 2v6M4 10h16"/></svg>
+          <span>주간 계획</span>
+        </a>
+        <a href="#/dashboard/subjects" data-route-link="dashboard/subjects">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4h6v16H4zM14 4h6v7h-6zM14 15h6v5h-6z"/></svg>
+          <span>과목 분석</span>
+        </a>
+        <a href="#/dashboard/tasks" data-route-link="dashboard/tasks">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
+          <span>전체 일정</span>
+        </a>
+      </nav>
+      <div class="sidebar-actions">
+        <button id="editPlanButton" class="secondary-button full-button" type="button">계획 설정 수정</button>
+        <button id="exportIcsButton" class="text-button full-button" type="button">캘린더 파일 내보내기</button>
+      </div>
+    </aside>
+
+    <main id="pageContent" class="page-content" tabindex="-1">
+      <form id="plannerForm" novalidate>
+        <section class="page" data-route-page="setup/exam" aria-labelledby="examPageTitle">
+          <header class="page-header">
+            <div>
+              <p class="page-eyebrow">1단계</p>
+              <h1 id="examPageTitle">시험 기간과 공부시간</h1>
+              <p>계획을 적용할 기간과 실제로 지킬 수 있는 공부시간을 입력하세요.</p>
+            </div>
+          </header>
+
+          <div class="content-grid two-column-grid">
+            <section class="panel">
+              <div class="panel-heading">
+                <div><span class="section-index">01</span><h2>시험 기본 정보</h2></div>
+                <p>계획 이름은 캘린더 파일명과 대시보드에 사용됩니다.</p>
+              </div>
+              <div class="form-grid">
+                <label class="field span-2" for="planName">
+                  <span>계획 이름 <b>*</b></span>
+                  <input id="planName" type="text" autocomplete="off" placeholder="예: 2학기 중간고사" required />
+                  <small class="field-help">나중에 알아보기 쉬운 이름을 사용하세요.</small>
+                </label>
+                <label class="field" for="grade">
+                  <span>학년</span>
+                  <select id="grade">
+                    <option value="1">고등학교 1학년</option>
+                    <option value="2">고등학교 2학년</option>
+                    <option value="3">고등학교 3학년</option>
+                  </select>
+                </label>
+                <div class="field" aria-hidden="true"></div>
+                <label class="field" for="studyStartDate">
+                  <span>준비 시작일 <b>*</b></span>
+                  <input id="studyStartDate" type="date" required />
+                </label>
+                <label class="field" for="examStartDate">
+                  <span>시험 시작일 <b>*</b></span>
+                  <input id="examStartDate" type="date" required />
+                </label>
+                <label class="field" for="examEndDate">
+                  <span>시험 종료일 <b>*</b></span>
+                  <input id="examEndDate" type="date" required />
+                </label>
+                <div id="periodPreview" class="inline-summary" aria-live="polite"></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading with-action">
+                <div><span class="section-index">02</span><h2>하루 공부 가능 시간</h2></div>
+                <div class="segmented-control" aria-label="시간 프리셋">
+                  <button type="button" data-time-preset="light">여유</button>
+                  <button class="active" type="button" data-time-preset="balanced">균형</button>
+                  <button type="button" data-time-preset="intensive">집중</button>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label class="field" for="weekdayTarget">
+                  <span>평일 희망 공부</span>
+                  <span class="number-field"><input id="weekdayTarget" type="number" min="30" max="600" step="10" /><em>분</em></span>
+                </label>
+                <label class="field" for="weekdayMax">
+                  <span>평일 최대 공부</span>
+                  <span class="number-field"><input id="weekdayMax" type="number" min="30" max="720" step="10" /><em>분</em></span>
+                </label>
+                <label class="field" for="weekendTarget">
+                  <span>주말 희망 공부</span>
+                  <span class="number-field"><input id="weekendTarget" type="number" min="30" max="720" step="10" /><em>분</em></span>
+                </label>
+                <label class="field" for="weekendMax">
+                  <span>주말 최대 공부</span>
+                  <span class="number-field"><input id="weekendMax" type="number" min="30" max="900" step="10" /><em>분</em></span>
+                </label>
+                <div class="time-range span-2">
+                  <span class="time-range-label">평일 공부 시간대</span>
+                  <label><span class="sr-only">평일 시작 시간</span><input id="weekdayStart" type="time" /></label>
+                  <span>부터</span>
+                  <label><span class="sr-only">평일 종료 시간</span><input id="weekdayEnd" type="time" /></label>
+                  <span>까지</span>
+                </div>
+                <div class="time-range span-2">
+                  <span class="time-range-label">주말 공부 시간대</span>
+                  <label><span class="sr-only">주말 시작 시간</span><input id="weekendStart" type="time" /></label>
+                  <span>부터</span>
+                  <label><span class="sr-only">주말 종료 시간</span><input id="weekendEnd" type="time" /></label>
+                  <span>까지</span>
+                </div>
+              </div>
+              <div class="info-box">
+                <strong>계획을 꽉 채우지 않습니다.</strong>
+                <p>희망 공부시간의 85%만 기본 일정으로 사용하고, 나머지는 미완료 분량과 갑작스러운 과제를 위한 여유로 남깁니다.</p>
+              </div>
+            </section>
+          </div>
+
+          <footer class="page-footer right-align">
+            <button class="primary-button" type="button" data-next-route="setup/subjects">과목 입력하기 <span aria-hidden="true">→</span></button>
+          </footer>
+        </section>
+
+        <section class="page" data-route-page="setup/subjects" aria-labelledby="subjectsPageTitle" hidden>
+          <header class="page-header with-page-action">
+            <div>
+              <p class="page-eyebrow">2단계</p>
+              <h1 id="subjectsPageTitle">시험 과목 분석</h1>
+              <p>과목마다 필요한 공부량이 다르므로 성적, 범위, 약점을 함께 입력합니다.</p>
+            </div>
+            <button id="addSubjectButton" class="secondary-button" type="button">과목 추가</button>
+          </header>
+
+          <div id="subjectsContainer" class="subject-list"></div>
+
+          <footer class="page-footer">
+            <button class="secondary-button" type="button" data-prev-route="setup/exam"><span aria-hidden="true">←</span> 이전</button>
+            <button class="primary-button" type="button" data-next-route="setup/schedule">생활 일정 입력 <span aria-hidden="true">→</span></button>
+          </footer>
+        </section>
+
+        <section class="page" data-route-page="setup/schedule" aria-labelledby="schedulePageTitle" hidden>
+          <header class="page-header">
+            <div>
+              <p class="page-eyebrow">3단계</p>
+              <h1 id="schedulePageTitle">학원과 생활 일정</h1>
+              <p>반복해서 공부할 수 없는 시간을 등록하면 해당 시간은 자동으로 비워 둡니다.</p>
+            </div>
+          </header>
+
+          <div class="content-grid schedule-layout">
+            <section class="panel schedule-panel">
+              <div class="panel-heading with-action">
+                <div><span class="section-index">01</span><h2>반복 일정</h2></div>
+                <button id="addScheduleButton" class="small-button" type="button">일정 추가</button>
+              </div>
+              <p class="panel-description">학원 수업뿐 아니라 이동, 운동, 정기 활동까지 함께 입력하세요.</p>
+              <div id="scheduleConflictAlert" class="validation-banner" hidden></div>
+              <div id="schedulesContainer" class="schedule-list"></div>
+              <div id="emptyScheduleState" class="empty-panel">
+                <strong>등록된 반복 일정이 없습니다.</strong>
+                <p>공부시간과 겹치는 일정이 없다면 그대로 다음 단계로 넘어가도 됩니다.</p>
+              </div>
+            </section>
+
+            <section class="panel preference-panel">
+              <div class="panel-heading">
+                <div><span class="section-index">02</span><h2>계획 방식</h2></div>
+              </div>
+              <div class="form-grid single-column">
+                <label class="field" for="sessionLength">
+                  <span>한 번에 공부할 시간</span>
+                  <select id="sessionLength">
+                    <option value="30">30분 · 짧게 자주</option>
+                    <option value="40">40분 · 기본</option>
+                    <option value="50">50분 · 깊게 집중</option>
+                    <option value="60">60분 · 긴 문제 풀이</option>
+                  </select>
+                </label>
+                <label class="field" for="breakLength">
+                  <span>세션 사이 휴식</span>
+                  <select id="breakLength">
+                    <option value="5">5분</option>
+                    <option value="10">10분</option>
+                    <option value="15">15분</option>
+                  </select>
+                </label>
+                <label class="field" for="minSleep">
+                  <span>최소 수면시간</span>
+                  <span class="number-field"><input id="minSleep" type="number" min="7" max="10" step="0.5" /><em>시간</em></span>
+                </label>
+                <label class="field" for="planStyle">
+                  <span>우선순위 기준</span>
+                  <select id="planStyle">
+                    <option value="balanced">균형형 · 마감과 약점을 함께 고려</option>
+                    <option value="score">성적 향상형 · 취약 과목을 더 많이</option>
+                    <option value="deadline">마감 우선형 · 가까운 시험부터</option>
+                  </select>
+                </label>
+              </div>
+              <div class="rule-list">
+                <div><span>1</span><p><strong>선수 학습 순서 유지</strong>개념 이후에 문제 풀이와 복습을 배치합니다.</p></div>
+                <div><span>2</span><p><strong>수면시간 보호</strong>종료 시간 뒤로 일정을 억지로 밀어 넣지 않습니다.</p></div>
+                <div><span>3</span><p><strong>미완료 자동 복구</strong>남은 분량만 계산해 비어 있는 시간으로 옮깁니다.</p></div>
+              </div>
+            </section>
+          </div>
+
+          <footer class="page-footer">
+            <button class="secondary-button" type="button" data-prev-route="setup/subjects"><span aria-hidden="true">←</span> 이전</button>
+            <button class="primary-button" type="button" data-next-route="setup/review">최종 확인 <span aria-hidden="true">→</span></button>
+          </footer>
+        </section>
+
+        <section class="page" data-route-page="setup/review" aria-labelledby="reviewPageTitle" hidden>
+          <header class="page-header">
+            <div>
+              <p class="page-eyebrow">4단계</p>
+              <h1 id="reviewPageTitle">계획 생성 전 확인</h1>
+              <p>필요한 공부시간과 실제 가용시간을 비교한 뒤 일정 생성 여부를 판단합니다.</p>
+            </div>
+          </header>
+
+          <div id="reviewSummary" class="review-layout"></div>
+
+          <section class="generate-bar">
+            <div>
+              <strong id="generateBarTitle">입력이 완료되었습니다.</strong>
+              <p id="generateBarDescription">내용을 확인한 뒤 계획을 생성하세요.</p>
+            </div>
+            <button id="generatePlanButton" class="primary-button large-button" type="button">학습 계획 생성</button>
+          </section>
+
+          <footer class="page-footer left-align">
+            <button class="secondary-button" type="button" data-prev-route="setup/schedule"><span aria-hidden="true">←</span> 이전</button>
+          </footer>
+        </section>
+      </form>
+
+      <section class="page dashboard-page" data-route-page="dashboard/today" aria-labelledby="todayPageTitle" hidden>
+        <header class="page-header dashboard-page-header">
+          <div>
+            <p id="todayDateLabel" class="page-eyebrow"></p>
+            <h1 id="todayPageTitle">오늘의 공부</h1>
+            <p id="todayPageSummary"></p>
+          </div>
+          <button id="quickRebalanceButton" class="secondary-button" type="button">남은 계획 재조정</button>
+        </header>
+
+        <div id="dashboardAlerts" class="alert-stack" aria-live="polite"></div>
+        <section id="nextTaskFeature" class="next-task-feature"></section>
+
+        <div class="today-grid">
+          <section class="panel">
+            <div class="panel-heading with-action">
+              <div><h2>오늘 일정</h2><span id="todayProgressLabel" class="panel-meta"></span></div>
+              <div id="todayProgressRing" class="progress-ring" aria-label="오늘 완료율"></div>
+            </div>
+            <div id="todayTasks" class="task-list"></div>
+          </section>
+
+          <aside class="today-side">
+            <section class="panel compact-panel">
+              <div class="panel-heading"><div><h2>이번 시험 요약</h2></div></div>
+              <div id="todayStats" class="mini-stat-list"></div>
+            </section>
+            <section class="panel compact-panel">
+              <div class="panel-heading"><div><h2>오늘 공부 팁</h2></div></div>
+              <div id="dailyAdvice" class="advice-block"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page dashboard-page" data-route-page="dashboard/week" aria-labelledby="weekPageTitle" hidden>
+        <header class="page-header dashboard-page-header">
+          <div>
+            <p class="page-eyebrow">주간 계획</p>
+            <h1 id="weekPageTitle">이번 주 일정</h1>
+            <p id="weekRangeLabel"></p>
+          </div>
+          <div class="week-controls">
+            <button id="prevWeekButton" class="icon-button bordered" type="button" aria-label="이전 주">←</button>
+            <button id="todayWeekButton" class="small-button" type="button">이번 주</button>
+            <button id="nextWeekButton" class="icon-button bordered" type="button" aria-label="다음 주">→</button>
+          </div>
+        </header>
+
+        <section class="panel calendar-panel">
+          <div id="calendarGrid" class="week-calendar"></div>
+        </section>
+        <div id="weekList" class="week-list-mobile"></div>
+      </section>
+
+      <section class="page dashboard-page" data-route-page="dashboard/subjects" aria-labelledby="analysisPageTitle" hidden>
+        <header class="page-header dashboard-page-header">
+          <div>
+            <p class="page-eyebrow">과목 분석</p>
+            <h1 id="analysisPageTitle">과목별 준비 상태</h1>
+            <p>계획 진행률과 약점에 맞는 공부 방법을 함께 확인할 수 있습니다.</p>
+          </div>
+        </header>
+        <div id="subjectAnalysisGrid" class="analysis-grid"></div>
+      </section>
+
+      <section class="page dashboard-page" data-route-page="dashboard/tasks" aria-labelledby="tasksPageTitle" hidden>
+        <header class="page-header dashboard-page-header">
+          <div>
+            <p class="page-eyebrow">일정 관리</p>
+            <h1 id="tasksPageTitle">전체 학습 일정</h1>
+            <p>과목과 상태로 검색하고, 완료하지 못한 분량을 다시 배치할 수 있습니다.</p>
+          </div>
+          <button id="rebalanceButton" class="secondary-button" type="button">전체 재조정</button>
+        </header>
+
+        <section class="panel task-manager-panel">
+          <div class="task-toolbar">
+            <label class="search-field">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <span class="sr-only">일정 검색</span>
+              <input id="taskSearch" type="search" placeholder="과목 또는 학습 내용 검색" />
+            </label>
+            <label><span class="sr-only">과목 필터</span><select id="subjectFilter"><option value="all">모든 과목</option></select></label>
+            <label><span class="sr-only">상태 필터</span><select id="taskFilter">
+              <option value="all">모든 상태</option>
+              <option value="pending">예정</option>
+              <option value="completed">완료</option>
+              <option value="rescheduled">재배치됨</option>
+              <option value="unscheduled">미배치</option>
+            </select></label>
+          </div>
+          <div id="taskResultSummary" class="result-summary"></div>
+          <div id="allTasks" class="task-table-wrap"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <nav id="mobileDashboardNav" class="mobile-nav" aria-label="대시보드 모바일 메뉴" hidden>
+    <a href="#/dashboard/today" data-route-link="dashboard/today"><span>오늘</span></a>
+    <a href="#/dashboard/week" data-route-link="dashboard/week"><span>주간</span></a>
+    <a href="#/dashboard/subjects" data-route-link="dashboard/subjects"><span>과목</span></a>
+    <a href="#/dashboard/tasks" data-route-link="dashboard/tasks"><span>전체</span></a>
+  </nav>
+
+  <dialog id="partialDialog" class="app-dialog">
+    <form method="dialog" class="dialog-card">
+      <header>
+        <div><p class="page-eyebrow">일부 완료</p><h2 id="partialDialogTitle">완료한 분량</h2></div>
+        <button class="icon-button" type="submit" value="cancel" aria-label="닫기">×</button>
+      </header>
+      <p>실제로 끝낸 비율만 선택하면 남은 분량을 다시 계산해 배치합니다.</p>
+      <label class="range-control" for="partialRange">
+        <span><strong id="partialPercentLabel">50%</strong><small id="partialTimeLabel"></small></span>
+        <input id="partialRange" type="range" min="10" max="90" step="10" value="50" />
+      </label>
+      <div class="quick-percent-row">
+        <button type="button" data-partial-value="25">25%</button>
+        <button type="button" data-partial-value="50">50%</button>
+        <button type="button" data-partial-value="75">75%</button>
+      </div>
+      <footer>
+        <button class="secondary-button" type="submit" value="cancel">취소</button>
+        <button id="confirmPartialButton" class="primary-button" type="button">남은 분량 재배치</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="focusDialog" class="app-dialog focus-dialog">
+    <div class="dialog-card">
+      <header>
+        <div><p class="page-eyebrow">집중 모드</p><h2 id="focusTaskTitle">공부 시작</h2></div>
+        <button id="closeFocusButton" class="icon-button" type="button" aria-label="집중 모드 닫기">×</button>
+      </header>
+      <p id="focusTaskMeta" class="focus-meta"></p>
+      <div id="focusTimer" class="focus-timer" aria-live="polite">40:00</div>
+      <div class="focus-actions">
+        <button id="focusToggleButton" class="primary-button large-button" type="button">시작</button>
+        <button id="focusResetButton" class="secondary-button" type="button">처음으로</button>
+      </div>
+      <div class="focus-complete-actions">
+        <button type="button" data-focus-result="complete">완료</button>
+        <button type="button" data-focus-result="partial">일부 완료</button>
+        <button type="button" data-focus-result="postpone">나중에</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <span id="toastMessage"></span>
+    <button id="toastAction" type="button" hidden></button>
+  </div>
+
+  <template id="subjectTemplate">
+    <article class="subject-card" data-subject-id="">
+      <header class="subject-card-header">
+        <button class="subject-toggle" type="button" aria-expanded="true">
+          <span class="subject-color" aria-hidden="true"></span>
+          <span class="subject-title-block">
+            <strong class="subject-display-name">새 과목</strong>
+            <small class="subject-summary">시험 정보를 입력하세요.</small>
+          </span>
+          <span class="subject-risk-badge">입력 중</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="subject-menu">
+          <button class="subject-duplicate text-button" type="button">복제</button>
+          <button class="remove-subject text-button danger-text" type="button">삭제</button>
+        </div>
+      </header>
+      <div class="subject-card-body">
+        <div class="form-grid subject-basic-grid">
+          <label class="field" data-field-name="name">
+            <span>과목명 <b>*</b></span>
+            <input class="subject-name" type="text" placeholder="예: 대수, 영어Ⅱ, 물리학" required />
+          </label>
+          <label class="field" data-field-name="examDate">
+            <span>시험 날짜 <b>*</b></span>
+            <input class="subject-exam-date" type="date" required />
+          </label>
+          <label class="field">
+            <span>이전 성적</span>
+            <span class="number-field"><input class="subject-score" type="number" min="0" max="100" placeholder="없음" /><em>점</em></span>
+          </label>
+          <label class="field">
+            <span>목표 성적</span>
+            <span class="number-field"><input class="subject-target-score" type="number" min="0" max="100" /><em>점</em></span>
+          </label>
+        </div>
+
+        <button class="details-toggle" type="button" aria-expanded="false">세부 정보 입력 <span aria-hidden="true">+</span></button>
+        <div class="subject-details" hidden>
+          <div class="form-grid">
+            <label class="field">
+              <span>현재 자신감</span>
+              <select class="subject-confidence">
+                <option value="1">1 · 거의 모름</option>
+                <option value="2">2 · 많이 부족</option>
+                <option value="3">3 · 보통</option>
+                <option value="4">4 · 대체로 이해</option>
+                <option value="5">5 · 자신 있음</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>체감 난이도</span>
+              <select class="subject-difficulty">
+                <option value="1">쉬움</option>
+                <option value="2">보통</option>
+                <option value="3">어려움</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>시험 범위량</span>
+              <span class="split-field"><input class="subject-units" type="number" min="1" max="500" /><select class="subject-unit-type">
+                <option value="page">쪽</option>
+                <option value="worksheet">학습지</option>
+                <option value="question">문제</option>
+                <option value="chapter">소단원</option>
+              </select></span>
+            </label>
+            <label class="field">
+              <span>주요 학습자료</span>
+              <select class="subject-material">
+                <option value="교과서·학교 학습지">교과서·학교 학습지</option>
+                <option value="학원 교재">학원 교재</option>
+                <option value="문제집">문제집</option>
+                <option value="자료 부족">자료 부족</option>
+              </select>
+            </label>
+            <label class="field span-2">
+              <span>구체적인 시험 범위</span>
+              <textarea class="subject-range" rows="3" placeholder="예: 교과서 30~75쪽, 학교 학습지 1~8장, 지수·로그 단원"></textarea>
+            </label>
+            <label class="field span-2">
+              <span>가장 큰 어려움</span>
+              <select class="subject-weakness">
+                <option value="concept">개념 이해 부족</option>
+                <option value="application">문제 적용 부족</option>
+                <option value="speed">시간 부족</option>
+                <option value="mistake">실수 많음</option>
+                <option value="memory">암기 부족</option>
+                <option value="none">특별한 문제 없음 / 처음 배우는 과목</option>
+              </select>
+            </label>
+          </div>
+          <div class="subject-estimate">
+            <span>예상 필요시간</span><strong class="subject-estimated-time">계산 중</strong><small class="subject-method-preview"></small>
+          </div>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <template id="scheduleTemplate">
+    <article class="schedule-item" data-schedule-id="">
+      <label><span class="sr-only">요일</span><select class="schedule-day">
+        <option value="1">월요일</option><option value="2">화요일</option><option value="3">수요일</option>
+        <option value="4">목요일</option><option value="5">금요일</option><option value="6">토요일</option><option value="0">일요일</option>
+      </select></label>
+      <label class="schedule-name-field"><span class="sr-only">일정 이름</span><input class="schedule-label" type="text" placeholder="예: 수학 학원과 이동" /></label>
+      <div class="schedule-time-pair">
+        <label><span class="sr-only">시작 시간</span><input class="schedule-start" type="time" /></label>
+        <span>–</span>
+        <label><span class="sr-only">종료 시간</span><input class="schedule-end" type="time" /></label>
+      </div>
+      <button class="remove-schedule icon-button" type="button" aria-label="일정 삭제">×</button>
+    </article>
+  </template>
+
+  <script src="app.bundle.js" defer></script>
+</body>
+</html>
