@@ -1,117 +1,72 @@
-# STUNO v5 · Study Note
+# STUNO 1
 
-STUNO는 **Study Note**를 줄인 이름입니다. 시험 날짜, 하루 공부량, 공부 가능한 시간대, 과목, 범위, 학원 일정을 한 장씩 입력하면 학습 블록을 자동으로 배치하는 정적 웹 앱입니다.
+Study Note를 줄인 이름의 시험 공부 계획 웹앱입니다.
 
-UI는 줄노트, 붉은 여백선, 바인더 구멍, 포스트잇을 활용한 노트 형태이며 본문에는 교보손글씨 2019 계열 웹폰트를 우선 적용합니다. 폰트 파일은 프로젝트에 포함하지 않고 외부 웹폰트를 불러오며, 불러오지 못하면 시스템 손글씨·기본 글꼴로 대체됩니다.
+## 배포 파일
 
-## 설정 흐름
+GitHub Pages 저장소 최상단에 아래 5개 파일을 올리세요.
 
-한 페이지에 여러 결정을 몰아넣지 않고 9단계로 나눴습니다.
+- `index.html`
+- `styles.css`
+- `app.bundle.js`
+- `sw.js`
+- `README.md`
 
-1. 노트 이름과 학년
-2. 공부 시작일과 시험 기간
-3. 평일·주말 목표 및 최대 공부량
-4. 평일·주말 공부 가능 시간대
-5. 시험 과목, 이전 성적, 목표 성적, 시험일
-6. 과목별 시험 범위, 자료, 분량, 약점
-7. 학원·운동·이동 등 반복 일정
-8. 세션 길이, 휴식, 최소 수면, 배분 방식
-9. 최종 검토와 계획 생성
+저장소 구조는 다음과 같아야 합니다.
 
-설정이 끝난 뒤에는 오늘, 주간 계획, 지난 기록, 과목 분석, 전체 일정, 캘린더 연결 화면만 사용하면 됩니다.
+```text
+stuno/
+├─ index.html
+├─ styles.css
+├─ app.bundle.js
+├─ sw.js
+└─ README.md
+```
 
-## 완료와 자동 미루기
+## GitHub Pages 배포
 
-- 예정된 공부는 `완료`, `일부 완료`, `미루기`로 처리할 수 있습니다.
-- 날짜가 지난 미완료 일정은 원래 기록을 지우지 않고 상태를 **미뤄짐**으로 바꿉니다.
-- 같은 학습 내용의 새 일정이 오늘 이후 빈 시간에 생성됩니다.
-- 나중에 원래 날짜에 실제로 공부했다는 사실을 떠올렸다면 지난 기록에서 **사실 공부했음**을 누를 수 있습니다.
-- 이 경우 그 원본에서 이어진 미룬 일정만 제거합니다. 일부 완료로 같은 학습 뿌리를 공유하는 다른 분량은 삭제하지 않습니다.
-- 완료율 계산에서는 미뤄짐 원본을 중복 합산하지 않습니다.
+1. GitHub의 `stuno` 저장소를 엽니다.
+2. 위 5개 파일을 저장소 최상단에 업로드합니다.
+3. 기존 같은 이름의 파일이 있으면 덮어씁니다.
+4. `Settings → Pages`로 이동합니다.
+5. `Deploy from a branch`를 선택합니다.
+6. 브랜치는 `main`, 폴더는 `/root`로 설정합니다.
+7. 배포 후 아래 주소로 접속합니다.
+
+```text
+https://kmc080406.github.io/stuno/
+```
+
+## 업데이트 후 이전 화면이 보일 때
+
+STUNO는 오프라인 실행을 위해 서비스 워커 캐시를 사용합니다. 업데이트 후 이전 버전이 보이면 다음 중 하나를 실행하세요.
+
+- 강력 새로고침
+- 브라우저의 STUNO 사이트 데이터 삭제 후 재접속
+- Chrome 개발자 도구의 `Application → Service Workers → Unregister`
 
 ## 저장 방식
 
-입력 내용, 생성된 계획, 체크 기록, Google 이벤트 ID는 브라우저 `localStorage`에 자동 저장됩니다.
+학습 계획과 설정은 현재 브라우저의 `localStorage`에 자동 저장됩니다.
 
-- 같은 기기와 같은 브라우저에서는 새로고침하거나 다시 열어도 유지됩니다.
-- 계정 기반 클라우드 저장이나 다른 기기 동기화는 아직 없습니다.
-- 사이트 데이터 또는 브라우저 저장공간을 삭제하면 기록도 삭제됩니다.
-- 저장소 사용이 차단된 환경에서는 앱이 멈추지 않고 현재 탭의 메모리에 임시 저장하며, 상단에 `현재 탭에 임시 저장`이라고 표시합니다.
+- 같은 기기와 같은 브라우저에서는 유지됩니다.
+- 브라우저 데이터를 삭제하면 함께 삭제됩니다.
+- 다른 기기와 자동 동기화되지는 않습니다.
 
-## Google Calendar 연동
+## Google Calendar
 
-두 가지 방법을 제공합니다.
+Google OAuth 웹 클라이언트 ID가 `index.html`에 적용되어 있습니다.
 
-### 1. ICS 파일 내보내기
-
-별도 설정 없이 `.ics` 파일을 내려받아 Google Calendar, Apple Calendar 등에 가져올 수 있습니다.
-
-### 2. Google Calendar 직접 동기화
-
-Google 계정 연결 후 현재 계획을 기본 캘린더에 생성·수정·삭제할 수 있습니다. 정적 사이트이므로 아래 설정은 배포자가 한 번 해야 합니다.
-
-1. Google Cloud 프로젝트 생성
-2. Google Calendar API 활성화
-3. OAuth 동의 화면 설정
-4. **웹 애플리케이션** 유형의 OAuth 클라이언트 ID 생성
-5. GitHub Pages 주소 등 실제 배포 주소를 승인된 JavaScript 원본에 등록
-6. STUNO의 `캘린더 연결` 화면에 클라이언트 ID 입력
-
-앱은 일정 관리에 필요한 `calendar.events` 범위만 요청합니다. 액세스 토큰은 보안을 위해 메모리에만 두므로 페이지를 새로 열면 다시 연결해야 합니다. 클라이언트 ID와 STUNO가 생성한 이벤트의 연결 정보만 브라우저 저장소에 남습니다.
-
-실제 OAuth 로그인은 유효한 Google Cloud 클라이언트 ID와 HTTPS 배포 주소가 있어야 최종 검증할 수 있습니다.
-
-## 실행
-
-`index.html`을 바로 열 수 있습니다. PWA와 Google 로그인을 포함한 모든 기능을 안정적으로 사용하려면 GitHub Pages 또는 로컬 HTTP 서버에서 실행하는 편이 좋습니다.
-
-```bash
-python -m http.server 8000
-```
-
-## GitHub Pages
-
-1. 프로젝트 파일 전체를 저장소 루트에 업로드
-2. 저장소 `Settings` → `Pages`
-3. `Deploy from a branch`
-4. `main`과 `/root` 선택
-5. 배포된 HTTPS 주소를 Google OAuth의 승인된 JavaScript 원본에도 등록
-
-## 파일 구조
+Google Cloud의 승인된 JavaScript 원본에는 다음 주소가 등록되어 있어야 합니다.
 
 ```text
-adaptive-study-planner/
-├── index.html
-├── styles.css
-├── app.bundle.js          # 브라우저 실행용 생성 파일
-├── app.js                 # 화면, 라우팅, 사용자 동작
-├── js/
-│   ├── constants.js
-│   ├── utils.js
-│   ├── storage.js         # 자동 저장, 구버전 변환, 저장 예외 처리
-│   ├── planner.js         # 학습량 및 일정 배치 엔진
-│   ├── task-history.js    # 미뤄짐 계보와 과거 완료 처리
-│   └── google-calendar.js # Google OAuth 및 이벤트 동기화
-├── tests/
-├── tools/build.py
-├── manifest.json
-├── icon.svg
-├── sw.js
-└── package.json
+https://kmc080406.github.io
 ```
 
-## 수정과 검사
+테스트 모드라면 실제 사용할 Google 계정을 OAuth 테스트 사용자에 추가해야 합니다.
 
-```bash
-npm run build
-npm run check
-```
+## 주의
 
-`app.bundle.js`는 직접 수정하지 않고 `app.js`와 `js/` 아래 원본을 수정한 뒤 다시 빌드합니다.
-
-## 현재 제한
-
-- 사용자 계정 및 기기 간 학습 데이터 동기화 없음
-- PDF·학습지 이미지 자동 분석 없음
-- Google Calendar에서 사용자가 직접 옮긴 일정을 STUNO로 다시 읽어오는 양방향 가져오기는 아직 없음
-- 직접 연동은 STUNO의 현재 계획을 Google Calendar로 보내고 이후 변경·삭제를 맞추는 단방향 동기화 방식
+- `index.html`을 하위 폴더에 넣지 마세요.
+- `stuno/stuno-1/index.html` 형태가 아니라 `stuno/index.html`이어야 합니다.
+- `app.bundle.js`와 `sw.js`를 빠뜨리면 앱이 정상 작동하지 않습니다.
